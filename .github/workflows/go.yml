@@ -5,14 +5,17 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      GOPATH: ${{ runner.workspace }}
     steps:
     - name: Install Go 1.13
       uses: actions/setup-go@v1
       with:
         go-version: 1.13
       id: go
+    - name: Setup env
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
+        echo "::add-path::$(go env GOPATH)/bin"
+      shell: bash
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
       with:
