@@ -11,15 +11,21 @@ jobs:
       with:
         go-version: 1.13
       id: go
-    - name: Setup env
-      run: |
-        echo "::set-env name=GOPATH::$(go env GOPATH)"
-        echo "::add-path::$(go env GOPATH)/bin"
-      shell: bash
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
       with:
         path: ./src/github.com/${{ github.repository }}
+    - name: Setup env
+      run: |
+        export GOPATH=$HOME/go
+        export GOBIN=$(go env GOPATH)/bin
+        export PATH=$PATH:$GOPATH
+        export PATH=$PATH:$GOBIN
+        mkdir -p $GOPATH/pkg
+        mkdir -p $GOBIN
+        mkdir -p $GOPATH/src/github.com/$GITHUB_REPOSITORY
+        mv $(pwd)/* $GOPATH/src/github.com/$GITHUB_REPOSITORY
+        cd $GOPATH/src/github.com/$GITHUB_REPOSITORY
     - name: Test
       run: make test
     - name: Build
