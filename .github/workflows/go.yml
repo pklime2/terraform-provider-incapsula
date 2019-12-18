@@ -36,3 +36,8 @@ jobs:
       run: |
         cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
         make build
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: terraform-provider-incapsula
+        path: $GOPATH/bin
