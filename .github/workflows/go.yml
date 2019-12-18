@@ -33,10 +33,13 @@ jobs:
         cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
         make test
     - name: Build
+      id: build
       run: |
         cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
         make build
         ls -l $GOPATH/bin
+        echo ::set-output name=ARTIFACT_PATH::$GOPATH/bin
+        echo ::set-output name=ARTIFACT_NAME::terraform-provider-incapsula
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -54,6 +57,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ${{ GOPATH }}/bin/terraform-provider-incapsula
-        asset_name: terraform-provider-incapsula
+        asset_path: ${{ steps.build.outputs.ARTIFACT_PATH }}/${{ steps.build.outputs.ARTIFACT_NAME }}
+        asset_name: ${{ steps.build.outputs.ARTIFACT_NAME }}
         asset_content_type: application/octet-stream
