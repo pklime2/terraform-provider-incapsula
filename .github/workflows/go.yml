@@ -28,13 +28,11 @@ jobs:
         mkdir -p $GOBIN
         mkdir -p $GOPATH/src/github.com/terraform-providers/$REPO_NAME
         mv $(pwd)/* $GOPATH/src/github.com/terraform-providers/$REPO_NAME
-        cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
-        ls -l
     - name: Test
       run: |
         cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
-        pwd
-        ls -l
         make test
     - name: Build
-      run: make build
+      run: |
+        cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
+        make build
