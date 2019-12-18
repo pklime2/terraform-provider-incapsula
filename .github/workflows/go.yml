@@ -36,8 +36,24 @@ jobs:
       run: |
         cd $GOPATH/src/github.com/terraform-providers/$REPO_NAME
         make build
-    - name: Archive build artifacts
-      uses: actions/upload-artifact@v1
+        ls -l $GOPATH/bin
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: terraform-provider-incapsula
-        path: /$GOPATH/bin
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        asset_path: $GOPATH/terraform-provider-incapsula
+        asset_name: terraform-provider-incapsula
+        asset_content_type: application/octet-stream
