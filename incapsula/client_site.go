@@ -26,6 +26,13 @@ type SiteUpdateResponse struct {
 	Res    int `json:"res"`
 }
 
+// SiteStatusDNSValidationData is DNS related validation data (HTML is a map[string][]string)
+type SiteStatusDNSValidationData struct {
+	DNSRecordName string   `json:"dns_record_name"`
+	SetTypeTo     string   `json:"set_type_to"`
+	SetDataTo     []string `json:"set_data_to"`
+}
+
 // SiteStatusResponse contains managed site information
 type SiteStatusResponse struct {
 	SiteID            int      `json:"site_id"`
@@ -132,8 +139,15 @@ type SiteStatusResponse struct {
 			Detected        bool   `json:"detected"`
 			DetectionStatus string `json:"detectionStatus"`
 		} `json:"origin_server"`
+		CustomCertificate struct {
+			Active bool `json:"active"`
+		} `json:"custom_certificate"`
 		GeneratedCertificate struct {
-			San []interface{} `json:"san"`
+			Ca               string      `json:"ca"`
+			ValidationMethod string      `json:"validation_method"`
+			ValidationData   interface{} `json:"validation_data"`
+			San              []string    `json:"san"`
+			ValidationStatus string      `json:"validation_status"`
 		} `json:"generated_certificate"`
 	} `json:"ssl"`
 	SiteDualFactorSettings struct {
@@ -182,29 +196,35 @@ type SiteStatusResponse struct {
 		Cache300X                 bool          `json:"cache300x"`
 		CacheHeaders              []interface{} `json:"cache_headers"`
 	} `json:"performance_configuration"`
-	ExtendedDdos int    `json:"extended_ddos"`
-	ExceptionID  string `json:"exception_id,omitempty"`
-	Res          int    `json:"res"`
-	ResMessage   string `json:"res_message"`
+	ExtendedDdos int         `json:"extended_ddos"`
+	ExceptionID  string      `json:"exception_id,omitempty"`
+	LogLevel     string      `json:"log_level,omitempty"`
+	Res          interface{} `json:"res"`
+	ResMessage   string      `json:"res_message"`
 	DebugInfo    struct {
 		IDInfo string `json:"id-info"`
 	} `json:"debug_info"`
 }
 
 // AddSite adds a site to be managed by Incapsula
-func (c *Client) AddSite(domain, accountID, refID, sendSiteSetupEmails, siteIP, forceSSL string) (*SiteAddResponse, error) {
-	log.Printf("[INFO] Adding Incapsula site for domain: %s\n", domain)
+func (c *Client) AddSite(domain, refID, sendSiteSetupEmails, siteIP, forceSSL string, accountID int) (*SiteAddResponse, error) {
+	log.Printf("[INFO] Adding Incapsula site for domain: %s (account ID %d)\n", domain, accountID)
 
-	resp, err := c.httpClient.PostForm(fmt.Sprintf("%s/%s", c.config.BaseURL, endpointSiteAdd), url.Values{
+	values := url.Values{
 		"api_id":                 {c.config.APIID},
 		"api_key":                {c.config.APIKey},
 		"domain":                 {domain},
-		"account_id":             {accountID},
 		"ref_id":                 {refID},
 		"send_site_setup_emails": {sendSiteSetupEmails},
 		"site_ip":                {siteIP},
 		"force_ssl":              {forceSSL},
-	})
+	}
+	if accountID != 0 {
+		values["account_id"] = make([]string, 1)
+		values["account_id"][0] = fmt.Sprint(accountID)
+	}
+
+	resp, err := c.httpClient.PostForm(fmt.Sprintf("%s/%s", c.config.BaseURL, endpointSiteAdd), values)
 	if err != nil {
 		return nil, fmt.Errorf("Error adding site for domain %s: %s", domain, err)
 	}
@@ -259,9 +279,17 @@ func (c *Client) SiteStatus(domain string, siteID int) (*SiteStatusResponse, err
 		return nil, fmt.Errorf("Error parsing site status JSON response for domain %s (site id: %d): %s", domain, siteID, err)
 	}
 
+	var resString string
+
+	if resNumber, ok := siteStatusResponse.Res.(float64); ok {
+		resString = fmt.Sprintf("%d", int(resNumber))
+	} else {
+		resString = siteStatusResponse.Res.(string)
+	}
+
 	// Look at the response status code from Incapsula
-	if siteStatusResponse.Res != 0 {
-		return nil, fmt.Errorf("Error from Incapsula service when getting site status for domain %s (site id: %d): %s", domain, siteID, string(responseBody))
+	if resString != "0" {
+		return &siteStatusResponse, fmt.Errorf("Error from Incapsula service when getting site status for domain %s (site id: %d): %s", domain, siteID, string(responseBody))
 	}
 
 	return &siteStatusResponse, nil

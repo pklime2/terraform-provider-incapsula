@@ -51,6 +51,28 @@ func TestMissingBaseURL(t *testing.T) {
 	}
 }
 
+func TestMissingBaseURLRev2(t *testing.T) {
+	config := Config{APIID: "foo", APIKey: "bar", BaseURL: "foobar.com", BaseURLRev2: ""}
+	client, err := config.Client()
+	if err == nil {
+		t.Errorf("Should have received an error, got a client: %q", client)
+	}
+	if err.Error() != missingBaseURLRev2Message {
+		t.Errorf("Should have received missing Base URL Revision 2 message, got: %s", err)
+	}
+}
+
+func TestMissingBaseURLAPI(t *testing.T) {
+	config := Config{APIID: "foo", APIKey: "bar", BaseURL: "foobar.com", BaseURLRev2: "foobar.com", BaseURLAPI: ""}
+	client, err := config.Client()
+	if err == nil {
+		t.Errorf("Should have received an error, got a client: %q", client)
+	}
+	if err.Error() != missingBaseURLAPIMessage {
+		t.Errorf("Should have received missing Base URL API message, got: %s", err)
+	}
+}
+
 func TestInvalidCredentials(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.String() != "/account" {
@@ -60,7 +82,7 @@ func TestInvalidCredentials(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config := Config{APIID: "bad", APIKey: "bad", BaseURL: server.URL}
+	config := Config{APIID: "bad", APIKey: "bad", BaseURL: server.URL, BaseURLRev2: server.URL, BaseURLAPI: server.URL}
 	client, err := config.Client()
 	if err == nil {
 		t.Errorf("Should have received an error, got a client: %q", client)
@@ -79,7 +101,7 @@ func TestValidCredentials(t *testing.T) {
 	}))
 	defer server.Close()
 
-	config := Config{APIID: "good", APIKey: "good", BaseURL: server.URL}
+	config := Config{APIID: "good", APIKey: "good", BaseURL: server.URL, BaseURLRev2: server.URL, BaseURLAPI: server.URL}
 	client, err := config.Client()
 	if err != nil {
 		t.Errorf("Should not have received an error, got: %s", err)

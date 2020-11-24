@@ -35,7 +35,12 @@ type CertificateEditResponse struct {
 
 // AddCertificate adds a custom SSL certificate to a site in Incapsula
 func (c *Client) AddCertificate(siteID, certificate, privateKey, passphrase string) (*CertificateAddResponse, error) {
-	b64Certificate := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(certificate)))
+	certificate = strings.TrimSpace(certificate)
+	_, err := base64.StdEncoding.DecodeString(certificate)
+	if err != nil {
+		// This is not a valid base64 encoded string
+		certificate = base64.StdEncoding.EncodeToString([]byte(certificate))
+	}
 
 	log.Printf("[INFO] Adding custom certificate for site_id: %s", siteID)
 
@@ -43,7 +48,7 @@ func (c *Client) AddCertificate(siteID, certificate, privateKey, passphrase stri
 		"api_id":      {c.config.APIID},
 		"api_key":     {c.config.APIKey},
 		"site_id":     {siteID},
-		"certificate": {b64Certificate},
+		"certificate": {certificate},
 	}
 
 	if privateKey != "" {
@@ -112,7 +117,7 @@ func (c *Client) ListCertificates(siteID string) (*CertificateListResponse, erro
 
 	// Look at the response status code from Incapsula
 	if certificateListResponse.Res != 0 {
-		return nil, fmt.Errorf("Error from Incapsula service when getting custom certificates list for site_id %s: %s", siteID, string(responseBody))
+		return &certificateListResponse, fmt.Errorf("Error from Incapsula service when getting custom certificates list for site_id %s: %s", siteID, string(responseBody))
 	}
 
 	return &certificateListResponse, nil
@@ -212,7 +217,7 @@ func (c *Client) DeleteCertificate(siteID string) error {
 		resString = certificateDeleteResponse.Res.(string)
 	}
 
-	// Look at the response status code from Incapsula data center
+	// Look at the response status code from Incapsula
 	if resString == "0" {
 		return nil
 	}
